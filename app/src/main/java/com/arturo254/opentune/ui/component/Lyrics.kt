@@ -153,6 +153,7 @@ fun Lyrics(
 
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val lyricsEntity by playerConnection.currentLyrics.collectAsState(initial = null)
+    val translatedLyricsState by playerConnection.translatedLyrics.collectAsState() // Added
     val lyrics = remember(lyricsEntity) { lyricsEntity?.lyrics?.trim() }
 
     val playerBackground by rememberEnumPreference(
@@ -504,6 +505,29 @@ fun Lyrics(
                         fontWeight = FontWeight.Bold,
                         modifier = itemModifier
                     )
+
+                    // Display translated lyrics if available
+                    val translatedText = translatedLyricsState.getOrNull(index)
+                    if (!translatedText.isNullOrBlank() && translatedText != item.text) {
+                        Text(
+                            text = translatedText,
+                            fontSize = 16.sp, // Smaller font for translation
+                            color = textColor.copy(alpha = if (!isSynced || index == displayedCurrentLineIndex || (isSelectionModeActive && isSelected)) 0.8f else 0.4f), // Slightly dimmer
+                            textAlign = when (lyricsTextPosition) {
+                                LyricsPosition.LEFT -> TextAlign.Left
+                                LyricsPosition.CENTER -> TextAlign.Center
+                                LyricsPosition.RIGHT -> TextAlign.Right
+                            },
+                            fontWeight = FontWeight.Normal, // Normal weight for translation
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 4.dp) // Padding for translation
+                                .alpha(
+                                    if (!isSynced || index == displayedCurrentLineIndex || (isSelectionModeActive && isSelected)) 1f
+                                    else 0.5f
+                                )
+                        )
+                    }
                 }
             }
         }
