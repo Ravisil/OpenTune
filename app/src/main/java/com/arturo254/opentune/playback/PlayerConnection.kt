@@ -24,9 +24,14 @@ import com.arturo254.opentune.extensions.getQueueWindows
 import com.arturo254.opentune.extensions.metadata
 import com.arturo254.opentune.playback.MusicService.MusicBinder
 import com.arturo254.opentune.playback.queues.Queue
+import com.arturo254.opentune.data.SettingsRepository
+import com.arturo254.opentune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
+import com.arturo254.opentune.lyrics.LyricsUtils.parseLyrics
+import com.arturo254.opentune.services.LyricsTranslationService
 import com.arturo254.opentune.utils.reportException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import me.bush.translator.Language
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,7 +49,9 @@ class PlayerConnection(
     private val context: Context,
     binder: MusicBinder,
     val database: MusicDatabase,
-    scope: CoroutineScope,
+    private val settingsRepository: SettingsRepository, // Added
+    private val lyricsTranslationService: LyricsTranslationService, // Added
+    private val scope: CoroutineScope, // Made private val
 ) : Player.Listener {
 
     companion object {
@@ -94,6 +101,30 @@ class PlayerConnection(
     val currentLyrics = mediaMetadata.flatMapLatest { mediaMetadata ->
         database.lyrics(mediaMetadata?.id)
     }
+
+    val translatedLyrics: StateFlow<List<String>> = combine(
+        currentLyrics,
+        settingsRepository.translationLanguage
+    ) { lyricsEntity, langCode ->
+        if (langCode == "disabled" || lyricsEntity?.lyrics.isNullOrBlank() || lyricsEntity.lyrics == LYRICS_NOT_FOUND) {
+            emptyList()
+        } else {
+            val targetLanguage = Language.fromCode(langCode)
+            if (targetLanguage != null) {
+                val originalLines = if (lyricsEntity.lyrics.startsWith("[")) {
+                    parseLyrics(lyricsEntity.lyrics).map { it.text }
+                } else {
+                    lyricsEntity.lyrics.lines()
+                }
+
+                originalLines.map { line ->
+                    lyricsTranslationService.translate(line, targetLanguage)
+                }
+            } else {
+                emptyList()
+            }
+        }
+    }.stateIn(scope, SharingStarted.Lazily, emptyList())
 
     val currentFormat = mediaMetadata.flatMapLatest { mediaMetadata ->
         database.format(mediaMetadata?.id)

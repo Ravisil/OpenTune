@@ -191,6 +191,8 @@ import com.arturo254.opentune.ui.utils.appBarScrollBehavior
 import com.arturo254.opentune.ui.utils.backToMain
 import com.arturo254.opentune.ui.utils.resetHeightOffset
 import com.arturo254.opentune.utils.SyncUtils
+import com.arturo254.opentune.data.SettingsRepository
+import com.arturo254.opentune.services.LyricsTranslationService
 import com.arturo254.opentune.utils.Updater
 import com.arturo254.opentune.utils.dataStore
 import com.arturo254.opentune.utils.get
@@ -234,6 +236,12 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var syncUtils: SyncUtils
 
+    @Inject
+    lateinit var settingsRepository: SettingsRepository // Added
+
+    @Inject
+    lateinit var lyricsTranslationService: LyricsTranslationService // Added
+
     private var playerConnection by mutableStateOf<PlayerConnection?>(null)
     private val serviceConnection =
         object : ServiceConnection {
@@ -243,7 +251,14 @@ class MainActivity : ComponentActivity() {
             ) {
                 if (service is MusicBinder) {
                     playerConnection =
-                        PlayerConnection(this@MainActivity, service, database, lifecycleScope)
+                        PlayerConnection(
+                            this@MainActivity,
+                            service,
+                            database,
+                            settingsRepository,
+                            lyricsTranslationService,
+                            lifecycleScope
+                        )
                 }
             }
 

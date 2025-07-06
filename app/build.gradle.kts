@@ -124,6 +124,9 @@ dependencies {
     implementation("org.jsoup:jsoup:1.18.1")
     kapt(libs.hilt.compiler)
 
+    implementation("me.bush:translator:2.1.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
     implementation(projects.innertube)
     implementation(projects.kugou)
     implementation(projects.lrclib)
